@@ -4,8 +4,8 @@ set(CMAKE_CXX_COMPILER "/data2/hby/programs/llvm/bin/clang++")
 
 project(webserver)
 
-add_compile_options(-std=c++20 -stdlib=libc++ -Wall)
-add_link_options(-stdlib=libc++)
+add_compile_options(-std=c++20 -stdlib=libc++ -Wall -fexperimental-library)
+add_link_options(-stdlib=libc++ -fexperimental-library)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True)

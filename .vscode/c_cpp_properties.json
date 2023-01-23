@@ -11,7 +11,8 @@
             "cppStandard": "c++20",
             "intelliSenseMode": "linux-clang-x64",
             "compilerArgs": [
-                "-stdlib=libc++"
+                "-stdlib=libc++",
+                "-fexperimental-library"
             ]
         }
     ],
