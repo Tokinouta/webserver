@@ -19,6 +19,7 @@ int main(int argc, char* argv[]) {
   }
   auto ip{argv[1]};
   auto port{atoi(argv[2])};
-  auto a{webserver(ip, port)};
-  a.print();
+  auto server{webserver(ip, port)};
+  server.connect();
+  
 }
