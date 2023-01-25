@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include <iostream>
+#include <format>
 
 inline int setnonblocking(int fd) {
   int old_option{fcntl(fd, F_GETFL)};
@@ -18,11 +19,16 @@ inline int setnonblocking(int fd) {
 }
 
 epoll_wrapper::epoll_wrapper(bool enable_et, int timeout)
-    : enable_et_(enable_et), timeout_(timeout) {}
+    : enable_et_(enable_et), timeout_(timeout) {
+  events_ = new epoll_event[MAX_EVENTS];
+}
 
-epoll_wrapper::~epoll_wrapper() {}
+epoll_wrapper::~epoll_wrapper() { delete[] events_; }
 
-void epoll_wrapper::create(int max_fd) { epollfd_ = epoll_create(max_fd); }
+void epoll_wrapper::create(int max_fd) {
+  epollfd_ = epoll_create(max_fd);
+  std::cout << std::format("epoll_create: {}", epollfd_) << std::endl;
+}
 
 // 将文件描述符fd 上的EPOLLIN 注册到epollfd
 // 指示的epoll内核事件表中，参数enable_et指定是否对fd启用ET模式
@@ -38,46 +44,49 @@ void epoll_wrapper::add(int fd) {
 }
 
 int epoll_wrapper::wait() {
-  auto ret{epoll_wait(epollfd_, &events_[0], events_.size(), timeout_)};
+  auto ret{epoll_wait(epollfd_, events_, MAX_EVENTS, timeout_)};
   if (ret < 0) {
     std::cerr << "epoll failure\n";
   }
   return ret;
 }
 
-void epoll_wrapper::et(int listenfd) {
+void epoll_wrapper::run(int listenfd, std::function<void()> accept,
+                        std::function<void(int)> handle) {
+  std::cout << "epoller started to run" << std::endl;
   auto number{wait()};
-  auto BUFFER_SIZE{100};
-  char buf[BUFFER_SIZE];
+  std::cout << std::format("got {} fds with new edge", number) << std::endl;
+  // auto BUFFER_SIZE{100};
+  // char buf[BUFFER_SIZE];
   for (int i = 0; i < number; i++) {
     int sockfd = events_[i].data.fd;
     if (sockfd == listenfd) {
-      struct sockaddr_in client_address;
-      socklen_t client_addrlength = sizeof(client_address);
-      int connfd{accept(listenfd, (struct sockaddr*)&client_address,
-                        &client_addrlength)};
-      add(connfd);  // 对connfd开启ET模式
+      std::cout << "listen" << std::endl;
+      accept();
     } else if (events_[i].events & EPOLLIN) {
+      std::cout << "handle" << std::endl;
+      handle(sockfd);
       // 这段代码不会被重复触发，所以我们循环读取数据，以确保把socket
       // 读缓存中的所有数据读出
-      printf("event trigger once\n");
-      while (1) {
-        memset(buf, '\0', BUFFER_SIZE);
-        auto ret{recv(sockfd, buf, BUFFER_SIZE - 1, 0)};
-        if (ret < 0) {
-          // 对于非阻塞IO，下面的条件成立表示数据巳经全部读取完毕．此后，epoll就能再次触发sockfd上的EPOLLIN事件．以驱动下一次读操作
-          if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-            printf("read later\n");
-            break;
-          }
-          close(sockfd);
-          break;
-        } else if (ret == 0) {
-          close(sockfd);
-        } else {
-          printf("get %d bytes of content: %s\n", ret, buf);
-        }
-      }
+      // printf("event trigger once\n");
+      // while (1) {
+      //   memset(buf, '\0', BUFFER_SIZE);
+      //   auto ret{recv(sockfd, buf, BUFFER_SIZE - 1, 0)};
+      //   if (ret < 0) {
+      //     //
+      //     对于非阻塞IO，下面的条件成立表示数据巳经全部读取完毕．此后，epoll就能再次触发sockfd上的EPOLLIN事件．以驱动下一次读操作
+      //     if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+      //       printf("read later\n");
+      //       break;
+      //     }
+      //     close(sockfd);
+      //     break;
+      //   } else if (ret == 0) {
+      //     close(sockfd);
+      //   } else {
+      //     printf("get %d bytes of content: %s\n", ret, buf);
+      //   }
+      // }
     } else {
       printf("something else happened \n");
     }

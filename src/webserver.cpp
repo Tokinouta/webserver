@@ -22,11 +22,13 @@ using std::string;
 static const size_t BUFFER_SIZE{1024};
 static const char* status_line[2]{"200 OK", "500 Internal server error"};
 
-webserver::webserver(const char* ip, int port) {
+webserver::webserver(const char* ip, int port, bool enable_et, int timeout)
+    : epoller_(std::make_unique<epoll_wrapper>(enable_et, timeout)) {
   memset(&address, 0, sizeof(address));
   address.sin_family = AF_INET;
   inet_pton(AF_INET, ip, &address.sin_addr);
   address.sin_port = htons(port);
+  epoller_->create(5);
 }
 
 webserver::~webserver() { close(sock); }
@@ -43,14 +45,18 @@ void webserver::connect() {
     std::cerr << "error listening" << std::endl;
     return;
   }
+  epoller_->add(sock);  // 添加监听端口
+}
 
+void webserver::accept_connection() {
   struct sockaddr_in client;
   socklen_t client_addrlength = sizeof(client);
   int connfd = accept(sock, (struct sockaddr*)&client, &client_addrlength);
   if (connfd < 0) {
     std::cerr << std::format("errno is {}", errno) << std::endl;
   } else {
-    handle(connfd);
+    epoller_->add(connfd);  // 对connfd开启ET模式
+    // handle(connfd);
   }
 }
 
@@ -62,29 +68,6 @@ void webserver::handle(int connfd) {
   string file_content;
 
   string file_name{fs::current_path().append("test.txt")};
-  // char* file_buf;  // 用于存放目标文件内容的应用程序缓存
-
-  // struct stat file_stat;  // 用于获取目标文件的属性，
-  // 比如是否为目录，文件大小
-  // auto len{0};  // 缓存区header_buf目前巳经使用了多少字节的空间
-
-  // if (stat(file_name, &file_stat) < 0) {  // 目标文件不存在
-  //   valid = false;
-  // } else {
-  //   if (S_ISDIR(file_stat.st_mode)) {  // 目标文件是一个目录
-  //     valid = false;
-  //   } else if (file_stat.st_mode & S_IROTH) {  //
-  //   当前用户有读取目标文件的权限
-  //     int fd{open(file_name, O_RDONLY)};
-  //     file_buf = new char[file_stat.st_size + 1];
-  //     memset(file_buf, 0, file_stat.st_size + 1);
-  //     if (read(fd, file_buf, file_stat.st_size) < 0) {
-  //       valid = false;
-  //     }
-  //   } else {
-  //     valid = false;
-  //   }
-  // }
 
   std::cout << file_name << std::endl;
   auto valid{true};  // 记录目标文件是否是有效文件
@@ -113,13 +96,6 @@ void webserver::handle(int connfd) {
                 << file_content;
     auto content{content_buf.str()};
     auto len{content.size()};
-    // struct iovec iv[2];
-    // iv[0].iov_base =
-    // reinterpret_cast<void*>(const_cast<char*>(header.c_str())); iv[0].iov_len
-    // = header.size(); iv[1].iov_base =
-    //     reinterpret_cast<void*>(const_cast<char*>(content.c_str()));
-    // iv[1].iov_len = content.size();
-    // writev(connfd, iv, 2);
     send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
   } else {
     content_buf << std::format("{} {}\r\n", "HTTP/1.1", status_line[1])
@@ -131,4 +107,12 @@ void webserver::handle(int connfd) {
   close(connfd);
   file_buf.close();
   content_buf.clear();
+}
+
+void webserver::run() {
+  std::cout << "run" << std::endl;
+  while (true) {
+    epoller_->run(sock, std::bind(&webserver::accept_connection, this),
+                  std::bind(&webserver::handle, this, std::placeholders::_1));
+  }
 }

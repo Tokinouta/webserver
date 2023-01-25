@@ -19,7 +19,9 @@ int main(int argc, char* argv[]) {
   }
   auto ip{argv[1]};
   auto port{atoi(argv[2])};
-  auto server{webserver(ip, port)};
+  auto enable_et{true};
+  auto timeout{-1};
+  auto server{webserver(ip, port, enable_et, timeout)};
   server.connect();
-  
+  server.run();
 }
