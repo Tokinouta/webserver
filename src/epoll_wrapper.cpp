@@ -8,8 +8,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include <iostream>
 #include <format>
+#include <iostream>
 
 inline int setnonblocking(int fd) {
   int old_option{fcntl(fd, F_GETFL)};
@@ -59,34 +59,24 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
   // auto BUFFER_SIZE{100};
   // char buf[BUFFER_SIZE];
   for (int i = 0; i < number; i++) {
-    int sockfd = events_[i].data.fd;
+    auto sockfd{events_[i].data.fd};
+    auto events{events_[i].events};
     if (sockfd == listenfd) {
       std::cout << "listen" << std::endl;
       accept();
-    } else if (events_[i].events & EPOLLIN) {
+    } else if (events & EPOLLIN) {
+      // 读事件
+      // 现在主线程中读取数据到缓冲区中；
+      // 再由线程池完成业务逻辑
+      // 读取http请求
       std::cout << "handle" << std::endl;
       handle(sockfd);
-      // 这段代码不会被重复触发，所以我们循环读取数据，以确保把socket
-      // 读缓存中的所有数据读出
-      // printf("event trigger once\n");
-      // while (1) {
-      //   memset(buf, '\0', BUFFER_SIZE);
-      //   auto ret{recv(sockfd, buf, BUFFER_SIZE - 1, 0)};
-      //   if (ret < 0) {
-      //     //
-      //     对于非阻塞IO，下面的条件成立表示数据巳经全部读取完毕．此后，epoll就能再次触发sockfd上的EPOLLIN事件．以驱动下一次读操作
-      //     if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
-      //       printf("read later\n");
-      //       break;
-      //     }
-      //     close(sockfd);
-      //     break;
-      //   } else if (ret == 0) {
-      //     close(sockfd);
-      //   } else {
-      //     printf("get %d bytes of content: %s\n", ret, buf);
-      //   }
-      // }
+    } else if (events & EPOLLOUT) {
+      // 写事件
+      // handleWrite(&m_usrs[currfd]);
+    } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+      // 对端关闭了连接
+      // closeConn(&m_usrs[currfd]);
     } else {
       printf("something else happened \n");
     }
