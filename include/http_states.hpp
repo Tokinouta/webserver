@@ -47,6 +47,16 @@ enum class HttpStatusCode {
   HTTP_VERSION_NOT_SUPPORTED = 505,
 };
 
-enum class HttpMethod { GET, POST };
+enum class HttpMethod {
+  GET,
+  POST,
+  HEAD,
+  OPTIONS,
+  PUT,
+  PATCH,
+  DELETE,
+  TRACE,
+  CONNECT
+};
 
 #endif
