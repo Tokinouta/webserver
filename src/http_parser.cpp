@@ -9,23 +9,28 @@ http_parser::http_parser() : status_(HttpParseStatus::START) {}
 
 http_parser::~http_parser() {}
 
-void http_parser::parse(const string s) {
+std::optional<HttpRequest> http_parser::parse(const string s) {
   std::istringstream ss(s);
+  HttpMethod method;
+  string path;
+  std::unordered_map<string, string> headers;
+  string body;
+
   // note: the following loop terminates when std::ios_base::operator bool()
   // on the stream returned from getline() returns false
   for (;;) {
     auto pos{ss.tellg()};
+    string a;
     switch (status_) {
-      case HttpParseStatus::START:
-        string a;
+      case HttpParseStatus::START: {
         std::getline(ss, a);
-        parse_request(a);
+        parse_request(a, method, path);
         break;
+      }
 
-      case HttpParseStatus::HEADER:
-        string a;
+      case HttpParseStatus::HEADER: {
         std::getline(ss, a);
-        parse_header(a);
+        parse_header(a, headers);
         // if (a == "\r") {
         //   // eof只有尝试读了才会变为true，所以不能用
         //   status_ = ss.tellg() == s.size() ? HttpParseStatus::END
@@ -34,26 +39,34 @@ void http_parser::parse(const string s) {
         //   parse_header(a);
         // }
         break;
+      }
 
-      case HttpParseStatus::BODY:
+      case HttpParseStatus::BODY: {
         if (ss.tellg() == s.size()) {
           status_ = HttpParseStatus::END;
         } else {
           string a{s.substr(pos, s.size() - pos)};
-          parse_body(a);
+          parse_body(a, body);
         }
         break;
+      }
 
-      case HttpParseStatus::END:
+      case HttpParseStatus::END: {
+        auto request{HttpRequest(method, std::move(path), std::move(headers),
+                                 std::move(body))};
+        return std::make_optional<HttpRequest>(request);
         break;
+      }
 
-      case HttpParseStatus::FAILED:
+      case HttpParseStatus::FAILED: {
+        return std::nullopt;
         break;
+      }
     }
   }
 }
 
-void http_parser::parse_request(string s) {
+void http_parser::parse_request(string s, HttpMethod& method_, string& path_) {
   std::smatch request_match;
   if (std::regex_search(s, request_match, request_regex)) {
     auto method{request_match[1].str()};
@@ -83,7 +96,8 @@ void http_parser::parse_request(string s) {
   }
 }
 
-void http_parser::parse_header(string s) {
+void http_parser::parse_header(string s,
+                               std::unordered_map<string, string>& headers) {
   if (s == "\r") {
     status_ = HttpParseStatus::BODY;
   } else {
@@ -91,14 +105,14 @@ void http_parser::parse_header(string s) {
     if (std::regex_search(s, header_match, header_regex)) {
       auto header{header_match[1].str()};
       auto value{header_match[2].str()};
-      headers_.insert({header, value});
+      headers.insert({header, value});
     } else {
       status_ = HttpParseStatus::FAILED;
     }
   }
 }
 
-void http_parser::parse_body(string s) {
+void http_parser::parse_body(string s, string& body) {
   if (true) {
     status_ = HttpParseStatus::END;
   } else {
