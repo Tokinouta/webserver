@@ -43,6 +43,13 @@ void epoll_wrapper::add(int fd) {
   setnonblocking(fd);
 }
 
+void epoll_wrapper::del(int fd) {
+  // if (fd < 0) {
+  //   return false;
+  // }
+  epoll_ctl(epollfd_, EPOLL_CTL_DEL, fd, NULL);
+}
+
 int epoll_wrapper::wait() {
   auto ret{epoll_wait(epollfd_, events_, MAX_EVENTS, timeout_)};
   if (ret < 0) {
@@ -52,7 +59,9 @@ int epoll_wrapper::wait() {
 }
 
 void epoll_wrapper::run(int listenfd, std::function<void()> accept,
-                        std::function<void(int)> handle) {
+                        std::function<void(int)> handle_read,
+                        std::function<void(int)> handle_write,
+                        std::function<void(int)> handle_close) {
   std::cout << "epoller started to run" << std::endl;
   auto number{wait()};
   std::cout << std::format("got {} fds with new edge", number) << std::endl;
@@ -69,14 +78,17 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
       // 现在主线程中读取数据到缓冲区中；
       // 再由线程池完成业务逻辑
       // 读取http请求
+
+      // 需要关联文件描述符和链接对象
       std::cout << "handle" << std::endl;
-      handle(sockfd);
+      handle_read(sockfd);
     } else if (events & EPOLLOUT) {
       // 写事件
-      // handleWrite(&m_usrs[currfd]);
+      handle_write(sockfd);
     } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
       // 对端关闭了连接
-      // closeConn(&m_usrs[currfd]);
+      del(sockfd);
+      handle_close(sockfd);
     } else {
       printf("something else happened \n");
     }

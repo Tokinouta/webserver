@@ -1,21 +1,5 @@
 #include "webserver.hpp"
 
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <unistd.h>
-
-#include <cerrno>
-#include <cstring>
-#include <filesystem>
-#include <format>
-#include <fstream>
-#include <iostream>
-#include <string>
-
 namespace fs = std::filesystem;
 using std::string;
 
@@ -60,10 +44,20 @@ void webserver::accept_connection() {
   }
 }
 
-void webserver::handle(int connfd) {
+void webserver::handle_read(int connfd) {
+  // 获取fd对应的http connection
+  auto conn{connection_[connfd]};
+
+  conn.receive(connfd);
+}
+
+void webserver::handle_write(int connfd) {
   // 用于保存HTTP应答的状态行、头部字段和一个空行的缓存区
   // char header_buf[BUFFER_SIZE];
   // memset(header_buf, 0, BUFFER_SIZE);
+
+  // 获取fd对应的http connection
+  auto conn{connection_[connfd]};
   std::ifstream file_buf;
   string file_content;
 
@@ -109,10 +103,20 @@ void webserver::handle(int connfd) {
   content_buf.clear();
 }
 
+void webserver::handle_close(int connfd) {
+  // 获取fd对应的http connection
+  auto conn{connection_[connfd]};
+
+  // conn.receive(connfd);
+}
+
 void webserver::run() {
   std::cout << "run" << std::endl;
   while (true) {
-    epoller_->run(sock, std::bind(&webserver::accept_connection, this),
-                  std::bind(&webserver::handle, this, std::placeholders::_1));
+    epoller_->run(
+        sock, std::bind(&webserver::accept_connection, this),
+        std::bind(&webserver::handle_read, this, std::placeholders::_1),
+        std::bind(&webserver::handle_write, this, std::placeholders::_1),
+        std::bind(&webserver::handle_close, this, std::placeholders::_1));
   }
 }

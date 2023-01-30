@@ -14,9 +14,12 @@ class epoll_wrapper {
 
   void create(int max_fd);
   void add(int fd);
+  void del(int fd);
   int wait();
   void run(int listenfd, std::function<void()> accept,
-           std::function<void(int)> handle);
+           std::function<void(int)> handle_read,
+           std::function<void(int)> handle_write,
+           std::function<void(int)> handle_close);
 
  private:
   int epollfd_;
