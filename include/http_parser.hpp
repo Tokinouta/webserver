@@ -13,6 +13,8 @@
 
 using std::string;
 
+enum class HttpParseStatus { START, HEADER, BODY, END, FAILED };
+
 class http_parser {
  private:
   HttpParseStatus status_;
