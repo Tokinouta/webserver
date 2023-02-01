@@ -76,6 +76,7 @@
         "utility": "cpp",
         "cinttypes": "cpp",
         "__verbose_abort": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "future": "cpp"
     }
 }
