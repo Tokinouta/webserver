@@ -21,7 +21,7 @@ enum class HttpStatusCode {
   USE_PROXY = 305,
   UNUSED = 306,
   TEMPORARY_REDIRECT = 307,
-  PERMANENT_REDIRECT = 307,
+  PERMANENT_REDIRECT = 308,
   BAD_REQUEST = 400,
   UNAUTHORIZED = 401,
   PAYMENT_REQUIRED = 402,
@@ -60,7 +60,7 @@ enum class HttpMethod {
   CONNECT
 };
 
-std::string status_string(HttpStatusCode sc) {
+inline std::string status_string(HttpStatusCode sc) {
   switch (sc) {
     case HttpStatusCode::CONTINUE:
       return std::string("100 Continue");

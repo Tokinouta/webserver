@@ -112,10 +112,9 @@ class ThreadPool {
 
   template <typename F, typename... Args>
   auto submit(F &&f, Args &&...args) -> std::future<decltype(f(args...))> {
-    std::function<decltype(f(args...)())> func{std::bind(
-        std::forward<F>(f),
-        std::forward<Args>(
-            args)...)};  // 连接函数和参数定义，特殊函数类型,避免左、右值错误
+    // 连接函数和参数定义，特殊函数类型,避免左、右值错误
+    std::function<decltype(f(args...)())> func{
+        std::bind(std::forward<F>(f), std::forward<Args>(args)...)};
     auto task{
         std::make_shared<std::packaged_task<decltype(f(args...)())>>(func)};
     auto wrapper_func = [task]() { (*task)(); };

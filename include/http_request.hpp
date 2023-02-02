@@ -17,15 +17,15 @@ class HttpRequest {
 
  public:
   HttpRequest(HttpMethod method, string&& path,
-              std::unordered_map<string, string>&& headers, string&& body);
-  ~HttpRequest();
+              std::unordered_map<string, string>&& headers, string&& body)
+      : method_(method), path_(path), headers_(headers), body_(body) {}
+  ~HttpRequest() {}
 };
 
-HttpRequest::HttpRequest(HttpMethod method, string&& path,
-                         std::unordered_map<string, string>&& headers,
-                         string&& body)
-    : method_(method), path_(path), headers_(headers), body_(body) {}
+// inline HttpRequest::HttpRequest(HttpMethod method, string&& path,
+//                          std::unordered_map<string, string>&& headers,
+//                          string&& body)
 
-HttpRequest::~HttpRequest() {}
+// HttpRequest::~HttpRequest()
 
 #endif

@@ -12,17 +12,19 @@ class HttpResponse {
   HttpStatusCode status_code_;
 
  public:
-  HttpResponse(/* args */);
-  ~HttpResponse();
-  string generate_response(const string& http_version);
+  HttpResponse(/* args */) {}
+  ~HttpResponse() {}
+  string generate_response(const string& http_version) {
+    return http_version + status_string(status_code_);
+  }
 };
 
-HttpResponse::HttpResponse(/* args */) {}
+// HttpResponse::HttpResponse(/* args */) {}
 
-HttpResponse::~HttpResponse() {}
+// HttpResponse::~HttpResponse() {}
 
-string HttpResponse::generate_response(const string& http_version) {
-  return http_version + status_string(status_code_);
-}
+// string HttpResponse::generate_response(const string& http_version) {
+//   return http_version + status_string(status_code_);
+// }
 
 #endif
