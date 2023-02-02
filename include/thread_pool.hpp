@@ -29,7 +29,7 @@ class SafeQueue {
     return queue_.size();
   }
 
-  void push(T &task) {
+  void push(const T &task) {
     std::unique_lock<std::mutex> lock(mutex_);
     queue_.push(task);
   }
@@ -61,14 +61,18 @@ class ThreadPool {
       std::function<void()> fn;
       bool has_work{false};
       while (!pool_->is_shutdown_) {
-        std::unique_lock<std::mutex> lock(pool_->mutex_);
-        if (pool_->queue_.empty() && !pool_->is_shutdown_) {
-          pool_->conditional_lock_.wait(lock);
+        {
+          // 此处只对获取新任务的过程加锁，不管最后有没有拿到工作都会解锁
+          // 这里的大括号定义了一个作用域，锁只在这一个作用域里生效
+          std::unique_lock<std::mutex> lock(pool_->mutex_);
+          if (pool_->queue_.empty() && !pool_->is_shutdown_) {
+            pool_->conditional_lock_.wait(lock);
+          }
+          has_work = pool_->queue_.pop(fn);
         }
-        has_work = pool_->queue_.pop(fn);
-      }
-      if (has_work) {
-        fn();
+        if (has_work) {
+          fn();
+        }
       }
     }
   };
@@ -91,7 +95,7 @@ class ThreadPool {
   ThreadPool &operator=(const ThreadPool &) = delete;
   // 赋值操作
   ThreadPool &operator=(ThreadPool &&) = delete;
-  ~ThreadPool();
+  ~ThreadPool() {}
 
   void init() {
     for (auto i{0}; i < workers_.size(); i++) {
@@ -113,10 +117,10 @@ class ThreadPool {
   template <typename F, typename... Args>
   auto submit(F &&f, Args &&...args) -> std::future<decltype(f(args...))> {
     // 连接函数和参数定义，特殊函数类型,避免左、右值错误
-    std::function<decltype(f(args...)())> func{
+    std::function<decltype(f(args...))()> func{
         std::bind(std::forward<F>(f), std::forward<Args>(args)...)};
     auto task{
-        std::make_shared<std::packaged_task<decltype(f(args...)())>>(func)};
+        std::make_shared<std::packaged_task<decltype(f(args...))()>>(func)};
     auto wrapper_func = [task]() { (*task)(); };
 
     queue_.push(wrapper_func);
