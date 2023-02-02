@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 set(CMAKE_C_COMPILER "/data2/hby/programs/llvm/bin/clang")
 set(CMAKE_CXX_COMPILER "/data2/hby/programs/llvm/bin/clang++")
+set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 project(webserver)
 
@@ -16,5 +17,8 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # include_directories(${PROJECT_SOURCE_DIR}/include/model)
 # include_directories(${PROJECT_SOURCE_DIR}/include/log)
 
+enable_testing()
+
 # 加载子目录
 add_subdirectory(src)
+add_subdirectory(tests)
