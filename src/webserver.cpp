@@ -1,5 +1,7 @@
 #include "webserver.hpp"
 
+// TODO: 增加connect处的错误处理，比如加一个错误码，或者手搓一个类似于rust那种result结构体
+
 namespace fs = std::filesystem;
 using std::string;
 
@@ -30,6 +32,7 @@ void webserver::connect() {
     return;
   }
   epoller_->add(sock);  // 添加监听端口
+  is_connected_ = true;
 }
 
 void webserver::accept_connection() {
@@ -46,9 +49,10 @@ void webserver::accept_connection() {
 
 void webserver::handle_read(int connfd) {
   // 获取fd对应的http connection
-  auto conn{connection_[connfd]};
+  auto& conn{connection_[connfd]};
 
   conn.receive(connfd);
+  conn.parse();
 }
 
 void webserver::handle_write(int connfd) {
@@ -58,6 +62,9 @@ void webserver::handle_write(int connfd) {
 
   // 获取fd对应的http connection
   auto conn{connection_[connfd]};
+  if (!conn.is_request_available()) {
+    // send an error response
+  }
   std::ifstream file_buf;
   string file_content;
 

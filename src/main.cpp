@@ -14,7 +14,8 @@
 int main(int argc, char* argv[]) {
   std::cout << "hello world!" << std::endl;
   if (argc <= 2) {
-    std::cout << std::format("Usage: {} <ip address> <port>", argv[0]) << std::endl;
+    std::cout << std::format("Usage: {} <ip address> <port>", argv[0])
+              << std::endl;
     return 1;
   }
   auto ip{argv[1]};
@@ -23,5 +24,7 @@ int main(int argc, char* argv[]) {
   auto timeout{-1};
   auto server{webserver(ip, port, enable_et, timeout)};
   server.connect();
-  server.run();
+  if (server.is_connected()) {
+    server.run();
+  }
 }

@@ -31,6 +31,8 @@ class webserver {
   std::unique_ptr<epoll_wrapper> epoller_;
   std::unordered_map<int, HttpConnection> connection_;
 
+  bool is_connected_{false};
+
  public:
   webserver(const char* ip, int port, bool enable_et, int timeout);
   ~webserver();
@@ -41,6 +43,8 @@ class webserver {
   void handle_write(int connfd);
   void handle_close(int connfd);
   void run();
+
+  const bool is_connected() { return is_connected_; }
 };
 
 #endif
