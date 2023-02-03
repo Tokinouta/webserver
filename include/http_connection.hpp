@@ -12,6 +12,7 @@
 #include "http_parser.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
+#include "http_states.hpp"
 
 static const int BUF_SIZE{65536};
 class HttpConnection {
@@ -19,16 +20,23 @@ class HttpConnection {
   std::optional<HttpRequest> request_;
   HttpResponse response_;
   HttpParser parser_;
-  char* buffer_;
+  string request_buffer_;
+  string response_buffer_;
 
  public:
   HttpConnection();
   ~HttpConnection();
-  void receive(int connfd);
-  void parse(const char* buffer);
+  void receive_request(const char* request) {
+    request_buffer_ = string(request);
+  }
+  void parse();
   bool is_request_available() { return request_.has_value(); }
 
   void prepare_response();
-  std::string generate_response() { return response_.generate_response(); }
+  void prepare_error_response(HttpStatusCode status) {
+    response_.set_status(status);
+    response_buffer_ = response_.generate_response();
+  }
+  std::string generate_response() { return response_buffer_; }
 };
 #endif

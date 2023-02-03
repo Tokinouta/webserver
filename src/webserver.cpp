@@ -1,5 +1,8 @@
 #include "webserver.hpp"
 
+#include "http_connection.hpp"
+#include "http_states.hpp"
+
 // TODO:
 // 增加connect处的错误处理，比如加一个错误码，或者手搓一个类似于rust那种result结构体
 
@@ -42,7 +45,7 @@ void webserver::accept_connection() {
     std::cerr << std::format("errno is {}", errno) << std::endl;
   } else {
     epoller_->add(connfd);  // 对connfd开启ET模式
-    // handle(connfd);
+    connection_.insert({connfd, HttpConnection()});
   }
 }
 
@@ -72,9 +75,9 @@ void webserver::handle_read(int connfd) {
     // }
     // return ((m_clt_read_idx - m_clt_write_idx) > 0) ? OK : NOTHING;
   }
-  // get this buffer into conn
-  conn.parse(buffer_);
+  conn.receive_request(buffer_);
   delete[] buffer_;
+  // get this buffer into conn
 }
 
 void webserver::handle_write(int connfd) {
@@ -83,10 +86,7 @@ void webserver::handle_write(int connfd) {
   // memset(header_buf, 0, BUFFER_SIZE);
 
   // 获取fd对应的http connection
-  auto conn{connection_[connfd]};
-  if (!conn.is_request_available()) {
-    // send an error response
-  }
+  auto& conn{connection_[connfd]};
   auto response{conn.generate_response()};
   send(connfd, reinterpret_cast<const void*>(response.c_str()), response.size(),
        0);
@@ -97,6 +97,16 @@ void webserver::handle_close(int connfd) {
   auto conn{connection_[connfd]};
 
   // conn.receive(connfd);
+}
+
+void handle_request(HttpConnection& conn) {
+  conn.parse();
+  if (!conn.is_request_available()) {
+    conn.prepare_error_response(HttpStatusCode::BAD_REQUEST);
+  } else {
+    conn.prepare_response();
+  }
+  // 通过设置EPOLLOUT手动触发写事件
 }
 
 void webserver::run() {

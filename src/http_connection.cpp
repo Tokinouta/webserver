@@ -4,37 +4,12 @@
 
 namespace fs = std::filesystem;
 
-HttpConnection::HttpConnection() : parser_() { buffer_ = new char[BUF_SIZE]; }
+HttpConnection::HttpConnection() : parser_() {}
 
-HttpConnection::~HttpConnection() { delete[] buffer_; }
+HttpConnection::~HttpConnection() {}
 
-void HttpConnection::receive(int connfd) {
-  int bytes_read = 0;
-  while (true) {
-    // if (m_clt_read_idx >= BUF_SIZE) {
-    //   log(LOG_ERR, __FILE__, __LINE__, "%s",
-    //       "the client read buffer is full, let server write");
-    //   return BUFFER_FULL;
-    // }
-
-    bytes_read = recv(connfd, buffer_, BUF_SIZE, 0);
-    if (bytes_read == -1) {
-      if (errno == EAGAIN || errno == EWOULDBLOCK) {
-        break;
-      }
-    }
-    // } else if (bytes_read == 0) {
-    //   return CLOSED;
-    // }
-
-    // m_clt_read_idx += bytes_read;
-    // }
-    // return ((m_clt_read_idx - m_clt_write_idx) > 0) ? OK : NOTHING;
-  }
-}
-
-void HttpConnection::parse(const char* buffer) {
-  request_ = parser_.parse(string(buffer));
+void HttpConnection::parse() {
+  request_ = parser_.parse(request_buffer_);
 }
 
 void HttpConnection::prepare_response() {
@@ -89,7 +64,7 @@ void HttpConnection::prepare_response() {
     // auto len{content.size()};
     // send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
   }
-
+  response_buffer_ = response_.generate_response();
   // close(connfd);
   // content_buf.clear();
 }
