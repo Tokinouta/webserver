@@ -19,15 +19,15 @@ class HttpParser {
  private:
   HttpParseStatus status_;
 
-  void parse_request(string s, HttpMethod& method, string& path);
-  void parse_header(string s, std::unordered_map<string, string>& headers);
-  void parse_body(string s, string& body);
+  void parse_request(string& s, HttpMethod& method, string& path);
+  void parse_header(string& s, std::unordered_map<string, string>& headers);
+  void parse_body(string& s, string& body);
 
  public:
   HttpParser();
   ~HttpParser();
 
-  std::optional<HttpRequest> parse(string s);
+  std::optional<HttpRequest> parse(const string& s);
 };
 
 #endif

@@ -9,7 +9,7 @@ HttpParser::HttpParser() : status_(HttpParseStatus::START) {}
 
 HttpParser::~HttpParser() {}
 
-std::optional<HttpRequest> HttpParser::parse(const string s) {
+std::optional<HttpRequest> HttpParser::parse(const string& s) {
   std::istringstream ss(s);
   HttpMethod method;
   string path;
@@ -42,7 +42,7 @@ std::optional<HttpRequest> HttpParser::parse(const string s) {
       }
 
       case HttpParseStatus::BODY: {
-        if (ss.tellg() == s.size()) {
+        if (pos == s.size()) {
           status_ = HttpParseStatus::END;
         } else {
           string a{s.substr(pos, s.size() - pos)};
@@ -66,7 +66,7 @@ std::optional<HttpRequest> HttpParser::parse(const string s) {
   }
 }
 
-void HttpParser::parse_request(string s, HttpMethod& method_, string& path_) {
+void HttpParser::parse_request(string& s, HttpMethod& method_, string& path_) {
   std::smatch request_match;
   if (std::regex_search(s, request_match, request_regex)) {
     auto method{request_match[1].str()};
@@ -96,7 +96,7 @@ void HttpParser::parse_request(string s, HttpMethod& method_, string& path_) {
   }
 }
 
-void HttpParser::parse_header(string s,
+void HttpParser::parse_header(string& s,
                                std::unordered_map<string, string>& headers) {
   if (s == "\r") {
     status_ = HttpParseStatus::BODY;
@@ -112,7 +112,8 @@ void HttpParser::parse_header(string s,
   }
 }
 
-void HttpParser::parse_body(string s, string& body) {
+void HttpParser::parse_body(string& s, string& body) {
+  body = s;
   if (true) {
     status_ = HttpParseStatus::END;
   } else {
