@@ -3,7 +3,11 @@
 
 #include <sys/socket.h>
 
+#include <filesystem>
+#include <format>
+#include <fstream>
 #include <optional>
+#include <string>
 
 #include "http_parser.hpp"
 #include "http_request.hpp"
@@ -21,8 +25,10 @@ class HttpConnection {
   HttpConnection();
   ~HttpConnection();
   void receive(int connfd);
-  void parse();
+  void parse(const char* buffer);
 
   bool is_request_available() { return request_.has_value(); }
+  void prepare_response();
+  std::string get_response_string() {return response_.content();}
 };
 #endif
