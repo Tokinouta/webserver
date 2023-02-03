@@ -1,9 +1,11 @@
 #ifndef HTTP_CONNECTION_HPP
 #define HTTP_CONNECTION_HPP
 
-#include <optional>
 #include <sys/socket.h>
 
+#include <optional>
+
+#include "http_parser.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
 
@@ -12,11 +14,15 @@ class HttpConnection {
  private:
   std::optional<HttpRequest> request_;
   HttpResponse response_;
+  HttpParser parser_;
   char* buffer_;
 
  public:
-  HttpConnection(/* args */);
+  HttpConnection();
   ~HttpConnection();
   void receive(int connfd);
+  void parse();
+
+  bool is_request_available() { return request_.has_value(); }
 };
 #endif
