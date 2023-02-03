@@ -26,9 +26,9 @@ class HttpConnection {
   ~HttpConnection();
   void receive(int connfd);
   void parse(const char* buffer);
-
   bool is_request_available() { return request_.has_value(); }
+
   void prepare_response();
-  std::string get_response_string() {return response_.content();}
+  std::string generate_response() { return response_.generate_response(); }
 };
 #endif

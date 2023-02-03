@@ -1,5 +1,7 @@
 #include "http_connection.hpp"
 
+#include "http_states.hpp"
+
 namespace fs = std::filesystem;
 
 HttpConnection::HttpConnection() : parser_() { buffer_ = new char[BUF_SIZE]; }
@@ -36,7 +38,7 @@ void HttpConnection::parse(const char* buffer) {
 }
 
 void HttpConnection::prepare_response() {
-  std::stringstream content_buf;
+  // std::stringstream content_buf;
   std::ifstream file_buf;
   string file_content;
 
@@ -60,25 +62,34 @@ void HttpConnection::prepare_response() {
       valid = false;
     }
   }
+  file_buf.close();
+  response_.add_body(std::move(file_content));
 
   // 如果目标文件有效，则发送正常的HTTP应答
-  response_.generate_response(request_.has_value() ? "HTTP/1.1" : "HTTP/1.1");
-  // if (valid) {
-  //   content_buf << std::format("{} {}\r\n", "HTTP/1.1", status_line[0])
-  //               << std::format("Content-Length: {}\r\n", file_content.size())
-  //               << "\r\n"
-  //               << file_content;
-  //   auto content{content_buf.str()};
-  //   auto len{content.size()};
-  //   send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
-  // } else {
-  //   content_buf << std::format("{} {}\r\n", "HTTP/1.1", status_line[1])
-  //               << "\r\n";
-  //   auto content{content_buf.str()};
-  //   auto len{content.size()};
-  //   send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
-  // }
+  // auto out_buffer{response_.write()};
+  // out_buffer << (request_.has_value() ? "HTTP/1.1" : "HTTP/1.1");
+  // response_.generate_response(request_.has_value() ? "HTTP/1.1" :
+  // "HTTP/1.1");
+  if (valid) {
+    response_.set_status(HttpStatusCode::OK);
+    response_.add_header(string("Content-Length"),
+                         std::to_string(file_content.size()));
+    // out_buffer << std::format("{} {}\r\n", "HTTP/1.1", status_line[0])
+    //            << std::format("Content-Length: {}\r\n", file_content.size())
+    //            << "\r\n"
+    //            << file_content;
+    // auto content{content_buf.str()};
+    // auto len{content.size()};
+    // send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
+  } else {
+    response_.set_status(HttpStatusCode::NOT_FOUND);
+    // out_buffer << std::format("{} {}\r\n", "HTTP/1.1", status_line[1])
+    //            << "\r\n";
+    // auto content{content_buf.str()};
+    // auto len{content.size()};
+    // send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
+  }
+
   // close(connfd);
-  file_buf.close();
-  content_buf.clear();
+  // content_buf.clear();
 }

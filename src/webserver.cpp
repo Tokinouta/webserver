@@ -87,10 +87,9 @@ void webserver::handle_write(int connfd) {
   if (!conn.is_request_available()) {
     // send an error response
   }
-  conn.prepare_response();
-  auto c{conn.get_response_string()};
-  send(connfd, reinterpret_cast<const void*>(c.c_str()), c.size(), 0);
-  // send the response
+  auto response{conn.generate_response()};
+  send(connfd, reinterpret_cast<const void*>(response.c_str()), response.size(),
+       0);
 }
 
 void webserver::handle_close(int connfd) {
