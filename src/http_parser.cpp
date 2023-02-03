@@ -5,11 +5,11 @@ static const std::regex request_regex(
     "HTTP/(?:[\\d\\.]*)\\r");
 static const std::regex header_regex("([A-Za-z\\-]): (.*)\\r");
 
-http_parser::http_parser() : status_(HttpParseStatus::START) {}
+HttpParser::HttpParser() : status_(HttpParseStatus::START) {}
 
-http_parser::~http_parser() {}
+HttpParser::~HttpParser() {}
 
-std::optional<HttpRequest> http_parser::parse(const string s) {
+std::optional<HttpRequest> HttpParser::parse(const string s) {
   std::istringstream ss(s);
   HttpMethod method;
   string path;
@@ -66,7 +66,7 @@ std::optional<HttpRequest> http_parser::parse(const string s) {
   }
 }
 
-void http_parser::parse_request(string s, HttpMethod& method_, string& path_) {
+void HttpParser::parse_request(string s, HttpMethod& method_, string& path_) {
   std::smatch request_match;
   if (std::regex_search(s, request_match, request_regex)) {
     auto method{request_match[1].str()};
@@ -96,7 +96,7 @@ void http_parser::parse_request(string s, HttpMethod& method_, string& path_) {
   }
 }
 
-void http_parser::parse_header(string s,
+void HttpParser::parse_header(string s,
                                std::unordered_map<string, string>& headers) {
   if (s == "\r") {
     status_ = HttpParseStatus::BODY;
@@ -112,7 +112,7 @@ void http_parser::parse_header(string s,
   }
 }
 
-void http_parser::parse_body(string s, string& body) {
+void HttpParser::parse_body(string s, string& body) {
   if (true) {
     status_ = HttpParseStatus::END;
   } else {
