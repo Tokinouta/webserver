@@ -38,33 +38,16 @@ void HttpConnection::prepare_response() {
     }
   }
   file_buf.close();
+  auto content_length{file_content.size()};
   response_.add_body(std::move(file_content));
 
   // 如果目标文件有效，则发送正常的HTTP应答
-  // auto out_buffer{response_.write()};
-  // out_buffer << (request_.has_value() ? "HTTP/1.1" : "HTTP/1.1");
-  // response_.generate_response(request_.has_value() ? "HTTP/1.1" :
-  // "HTTP/1.1");
   if (valid) {
     response_.set_status(HttpStatusCode::OK);
     response_.add_header(string("Content-Length"),
-                         std::to_string(file_content.size()));
-    // out_buffer << std::format("{} {}\r\n", "HTTP/1.1", status_line[0])
-    //            << std::format("Content-Length: {}\r\n", file_content.size())
-    //            << "\r\n"
-    //            << file_content;
-    // auto content{content_buf.str()};
-    // auto len{content.size()};
-    // send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
+                         std::to_string(content_length));
   } else {
     response_.set_status(HttpStatusCode::NOT_FOUND);
-    // out_buffer << std::format("{} {}\r\n", "HTTP/1.1", status_line[1])
-    //            << "\r\n";
-    // auto content{content_buf.str()};
-    // auto len{content.size()};
-    // send(connfd, reinterpret_cast<const void*>(content.c_str()), len, 0);
   }
   response_buffer_ = response_.generate_response();
-  // close(connfd);
-  // content_buf.clear();
 }

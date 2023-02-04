@@ -84,6 +84,6 @@
     },
     "cmake.ctestArgs": [
         "-R",
-        "test_parser"
+        "test_pipeline"
     ]
 }

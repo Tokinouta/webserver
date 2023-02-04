@@ -20,8 +20,7 @@ class HttpResponse {
   HttpResponse() {}
   ~HttpResponse() {}
   string generate_response(const string& http_version = "HTTP/1.1") {
-    string content;
-    auto buffer{std::ostringstream(content)};
+    std::ostringstream buffer;
     buffer << std::format("{} {}\r\n", http_version,
                           status_string(status_code_));
     for (auto [h, c] : headers_) {
@@ -29,7 +28,7 @@ class HttpResponse {
     }
     buffer << "\r\n";
     buffer << body_;
-    return content;
+    return buffer.str();
   }
 
   void set_status(const HttpStatusCode status) { status_code_ = status; }
