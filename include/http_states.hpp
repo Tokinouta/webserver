@@ -1,6 +1,7 @@
 #ifndef HTTP_STATES_HPP
 #define HTTP_STATES_HPP
 
+#include <format>
 #include <string>
 
 enum class HttpStatusCode {
@@ -60,7 +61,7 @@ enum class HttpMethod {
   CONNECT
 };
 
-inline std::string status_string(HttpStatusCode sc) {
+inline std::string status_string(const HttpStatusCode sc) {
   switch (sc) {
     case HttpStatusCode::CONTINUE:
       return std::string("100 Continue");
@@ -148,5 +149,44 @@ inline std::string status_string(HttpStatusCode sc) {
       return std::string("505 HTTP Version Not Supported");
   }
 }
+
+inline std::string method_string(const HttpMethod m) {
+  switch (m) {
+    case HttpMethod::GET:
+      return std::string("GET");
+    case HttpMethod::POST:
+      return std::string("POST");
+    case HttpMethod::HEAD:
+      return std::string("HEAD");
+    case HttpMethod::OPTIONS:
+      return std::string("OPTIONS");
+    case HttpMethod::PUT:
+      return std::string("PUT");
+    case HttpMethod::PATCH:
+      return std::string("PATCH");
+    case HttpMethod::DELETE:
+      return std::string("DELETE");
+    case HttpMethod::TRACE:
+      return std::string("TRACE");
+    case HttpMethod::CONNECT:
+      return std::string("CONNECT");
+  }
+}
+
+template <typename _CharT>
+struct std::formatter<HttpMethod, _CharT>
+    : std::formatter<std::string, _CharT> {
+  // 这里不一定要继承bool,其他内置类型也可以,
+  // 比如 : std::formatter<double, _CharT>
+  template <typename _FormatContext>
+  typename _FormatContext::iterator format(
+      const HttpMethod& v,
+      _FormatContext&
+          format_context  // 所有format均返回此类型，以下使用auto代替
+  ) {
+    // 因为我们继承自std::formatter<bool, _CharT>，所以可直接调用父类的format
+    return std::formatter<std::string, _CharT>::format(method_string(v), format_context);
+  }
+};
 
 #endif

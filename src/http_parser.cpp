@@ -3,7 +3,7 @@
 static const std::regex request_regex(
     "(GET|POST|HEAD|OPTIONS|PUT|PATCH|DELETE|TRACE|CONNECT) (.*) "
     "HTTP/(?:[\\d\\.]*)\\r");
-static const std::regex header_regex("([A-Za-z\\-]): (.*)\\r");
+static const std::regex header_regex("([A-Za-z\\-]*): (.*)\\r");
 
 HttpParser::HttpParser() : status_(HttpParseStatus::START) {}
 
@@ -97,7 +97,7 @@ void HttpParser::parse_request(string& s, HttpMethod& method_, string& path_) {
 }
 
 void HttpParser::parse_header(string& s,
-                               std::unordered_map<string, string>& headers) {
+                              std::unordered_map<string, string>& headers) {
   if (s == "\r") {
     status_ = HttpParseStatus::BODY;
   } else {
