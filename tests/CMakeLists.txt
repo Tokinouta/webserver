@@ -1,7 +1,7 @@
-aux_source_directory(. SRC_LIST)
-add_executable(MajorEleTest ${SRC_LIST})
-target_link_libraries(MajorEleTest pthread)
-# target_link_libraries(MajorEleTest
-#     MajorEle)
+add_executable(test_thread_pool test_thread_pool.cpp)
+add_executable(test_parser test_parser.cpp ../src/http_parser.cpp)
 
-add_test(NAME majoreletest COMMAND MajorEleTest)
+target_link_libraries(test_thread_pool pthread)
+
+add_test(NAME test_thread_pool COMMAND test_thread_pool)
+add_test(NAME test_parser COMMAND test_parser)
