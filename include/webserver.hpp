@@ -42,9 +42,11 @@ class webserver {
   void handle_read(int connfd);
   void handle_write(int connfd);
   void handle_close(int connfd);
+  void handle_request(int connfd);
   void run();
 
   const bool is_connected() { return is_connected_; }
 };
+
 
 #endif

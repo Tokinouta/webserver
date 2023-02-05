@@ -1,5 +1,11 @@
 #include "webserver.hpp"
 
+#include <sys/epoll.h>
+
+#include <cstring>
+#include <format>
+
+#include "epoll_wrapper.hpp"
 #include "http_connection.hpp"
 #include "http_states.hpp"
 
@@ -33,7 +39,7 @@ void webserver::connect() {
     std::cerr << "error listening" << std::endl;
     return;
   }
-  epoller_->add(sock);  // 添加监听端口
+  epoller_->add(sock, true);  // 添加监听端口
   is_connected_ = true;
 }
 
@@ -53,7 +59,8 @@ void webserver::handle_read(int connfd) {
   // 获取fd对应的http connection
   auto& conn{connection_[connfd]};
   auto buffer_ = new char[BUFFER_SIZE];
-  int bytes_read = 0;
+  memset(buffer_, 0, BUFFER_SIZE);
+  auto read_index{0};
   while (true) {
     // if (m_clt_read_idx >= BUF_SIZE) {
     //   log(LOG_ERR, __FILE__, __LINE__, "%s",
@@ -61,23 +68,29 @@ void webserver::handle_read(int connfd) {
     //   return BUFFER_FULL;
     // }
 
-    bytes_read = recv(connfd, buffer_, BUFFER_SIZE, 0);
+    int bytes_read =
+        recv(connfd, buffer_ + read_index, BUFFER_SIZE - read_index, 0);
     if (bytes_read == -1) {
       if (errno == EAGAIN || errno == EWOULDBLOCK) {
         break;
       }
+    } else if (bytes_read == 0) {
+      // return CLOSED;
+      break;
     }
-    // } else if (bytes_read == 0) {
-    //   return CLOSED;
-    // }
 
-    // m_clt_read_idx += bytes_read;
+    read_index += bytes_read;
+    std::cout << std::format("read {} bytes", read_index) << std::endl;
     // }
     // return ((m_clt_read_idx - m_clt_write_idx) > 0) ? OK : NOTHING;
   }
+  if (read_index == 0) {
+    return;
+  }
   conn.receive_request(buffer_);
+  std::cout << "buffer: " << buffer_ << std::endl;
   delete[] buffer_;
-  // get this buffer into conn
+  handle_request(connfd);
 }
 
 void webserver::handle_write(int connfd) {
@@ -90,6 +103,7 @@ void webserver::handle_write(int connfd) {
   auto response{conn.generate_response()};
   send(connfd, reinterpret_cast<const void*>(response.c_str()), response.size(),
        0);
+  epoller_->mod(connfd, EPOLLIN);
 }
 
 void webserver::handle_close(int connfd) {
@@ -99,7 +113,9 @@ void webserver::handle_close(int connfd) {
   // conn.receive(connfd);
 }
 
-void handle_request(HttpConnection& conn) {
+void webserver::handle_request(int connfd) {
+  std::cout << "start handling request" << std::endl;
+  auto& conn{connection_[connfd]};
   conn.parse();
   if (!conn.is_request_available()) {
     conn.prepare_error_response(HttpStatusCode::BAD_REQUEST);
@@ -107,6 +123,7 @@ void handle_request(HttpConnection& conn) {
     conn.prepare_response();
   }
   // 通过设置EPOLLOUT手动触发写事件
+  epoller_->mod(connfd, EPOLLOUT);
 }
 
 void webserver::run() {

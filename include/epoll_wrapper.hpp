@@ -13,8 +13,9 @@ class epoll_wrapper {
   ~epoll_wrapper();
 
   void create(int max_fd);
-  void add(int fd);
+  void add(int fd, bool is_listen = false, uint32_t event_flag = EPOLLIN);
   void del(int fd);
+  void mod(int fd, uint32_t ev);
   int wait();
   void run(int listenfd, std::function<void()> accept,
            std::function<void(int)> handle_read,
@@ -24,7 +25,8 @@ class epoll_wrapper {
  private:
   int epollfd_;
   bool enable_et_;
-  // std::vector<epoll_event> events_;
+  uint32_t connect_event_flags_;
+  uint32_t listen_event_flags_;
   epoll_event* events_;
   int timeout_;
 };

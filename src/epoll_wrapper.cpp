@@ -19,8 +19,18 @@ inline int setnonblocking(int fd) {
 }
 
 epoll_wrapper::epoll_wrapper(bool enable_et, int timeout)
-    : enable_et_(enable_et), timeout_(timeout) {
+    : enable_et_(enable_et),
+      connect_event_flags_(EPOLLONESHOT | EPOLLRDHUP),
+      listen_event_flags_(EPOLLRDHUP),
+      timeout_(timeout) {
   events_ = new epoll_event[MAX_EVENTS];
+  if (enable_et_) {
+    connect_event_flags_ |= EPOLLET;
+  }
+  // EPOLLRDHUP宏，底层处理socket连接断开的情况
+  // EPOLLONESHOT 和 ET 模式不尽相同：
+  // 前者是防止一个客户端发送的数据被多个线程分散读取；
+  // 后者是避免多次调用epoll_wait提高epoll效率的一种模式
 }
 
 epoll_wrapper::~epoll_wrapper() { delete[] events_; }
@@ -30,17 +40,26 @@ void epoll_wrapper::create(int max_fd) {
   std::cout << std::format("epoll_create: {}", epollfd_) << std::endl;
 }
 
-// 将文件描述符fd 上的EPOLLIN 注册到epollfd
-// 指示的epoll内核事件表中，参数enable_et指定是否对fd启用ET模式
-void epoll_wrapper::add(int fd) {
+// 将文件描述符 fd 上的 EPOLLIN 注册到 epollfd
+void epoll_wrapper::add(int fd, bool is_listen, uint32_t event_flag) {
   epoll_event event;
   event.data.fd = fd;
-  event.events = EPOLLIN;
-  if (enable_et_) {
-    event.events |= EPOLLET;
+  if (is_listen) {
+    event.events = listen_event_flags_ | event_flag;
+  } else {
+    event.events = connect_event_flags_ | event_flag;
   }
   epoll_ctl(epollfd_, EPOLL_CTL_ADD, fd, &event);
   setnonblocking(fd);
+}
+
+void epoll_wrapper::mod(int fd, uint32_t ev) {
+  epoll_event event;
+  event.data.fd = fd;
+  event.events = connect_event_flags_ | ev;
+  epoll_ctl(epollfd_, EPOLL_CTL_MOD, fd, &event);
+  setnonblocking(fd);
+  std::cout << "modified events" << std::endl;
 }
 
 void epoll_wrapper::del(int fd) {
@@ -73,6 +92,11 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
     if (sockfd == listenfd) {
       std::cout << "listen" << std::endl;
       accept();
+    } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+      // 对端关闭了连接
+      std::cout << std::format("close fd {}", sockfd) << std::endl;
+      del(sockfd);
+      handle_close(sockfd);
     } else if (events & EPOLLIN) {
       // 读事件
       // 现在主线程中读取数据到缓冲区中；
@@ -80,15 +104,12 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
       // 读取http请求
 
       // 需要关联文件描述符和链接对象
-      std::cout << "handle" << std::endl;
+      std::cout << std::format("read fd {}", sockfd) << std::endl;
       handle_read(sockfd);
     } else if (events & EPOLLOUT) {
       // 写事件
+      std::cout << std::format("write fd {}", sockfd) << std::endl;
       handle_write(sockfd);
-    } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
-      // 对端关闭了连接
-      del(sockfd);
-      handle_close(sockfd);
     } else {
       printf("something else happened \n");
     }
