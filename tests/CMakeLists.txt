@@ -1,7 +1,16 @@
+set(BOOST_ROOT /data2/hby/cpp/boost_1_81_0) # 设置boost库搜索路径
+set(Boost_NO_SYSTEM_PATHS ON) # 只搜索上语句设置的搜索路径
+find_package(Boost)
+if(Boost_FOUND)
+  include_directories(${Boost_INCLUDE_DIRS})
+endif()
+
 add_executable(test_thread_pool test_thread_pool.cpp)
 add_executable(test_parser test_parser.cpp ../src/http_parser.cpp)
 add_executable(test_pipeline test_pipeline.cpp ../src/http_connection.cpp ../src/http_parser.cpp)
+add_executable(test_server test_server.cpp ../src/http_connection.cpp ../src/http_parser.cpp ../src/webserver.cpp ../src/epoll_wrapper.cpp)
 target_link_libraries(test_thread_pool pthread)
+target_link_libraries(test_server Boost::boost pthread)
 
 add_test(NAME test_thread_pool COMMAND test_thread_pool)
 add_test(NAME test_parser COMMAND test_parser)
