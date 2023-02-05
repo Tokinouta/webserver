@@ -31,13 +31,6 @@ std::optional<HttpRequest> HttpParser::parse(const string& s) {
       case HttpParseStatus::HEADER: {
         std::getline(ss, a);
         parse_header(a, headers);
-        // if (a == "\r") {
-        //   // eof只有尝试读了才会变为true，所以不能用
-        //   status_ = ss.tellg() == s.size() ? HttpParseStatus::END
-        //                                    : HttpParseStatus::BODY;
-        // } else {
-        //   parse_header(a);
-        // }
         break;
       }
 

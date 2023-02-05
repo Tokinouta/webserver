@@ -22,19 +22,22 @@
 
 #include "epoll_wrapper.hpp"
 #include "http_connection.hpp"
+#include "thread_pool.hpp"
 
 class webserver {
  private:
-  int sock;
-  struct sockaddr_in address;
+  int sock_;
+  struct sockaddr_in address_;
   std::stringstream content_buf;
   std::unique_ptr<epoll_wrapper> epoller_;
   std::unordered_map<int, HttpConnection> connection_;
+  std::unique_ptr<ThreadPool> thread_pool_;
 
   bool is_connected_{false};
 
  public:
-  webserver(const char* ip, int port, bool enable_et, int timeout);
+  webserver(const char* ip, int port, bool enable_et, int timeout,
+            int thread_number);
   ~webserver();
   void print();
   void connect();
@@ -47,6 +50,5 @@ class webserver {
 
   const bool is_connected() { return is_connected_; }
 };
-
 
 #endif

@@ -25,7 +25,7 @@ int main(int argc, char** argv) {
   if (pid == 0) {
     auto enable_et{true};
     auto timeout{-1};
-    auto server{webserver(host, atoi(port), enable_et, timeout)};
+    auto server{webserver(host, atoi(port), enable_et, timeout, 10)};
     server.connect();
     if (server.is_connected()) {
       server.run();

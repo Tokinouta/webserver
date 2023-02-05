@@ -8,6 +8,7 @@
 #include "epoll_wrapper.hpp"
 #include "http_connection.hpp"
 #include "http_states.hpp"
+#include "thread_pool.hpp"
 
 // TODO:
 // 增加connect处的错误处理，比如加一个错误码，或者手搓一个类似于rust那种result结构体
@@ -16,37 +17,40 @@ using std::string;
 
 static const size_t BUFFER_SIZE{65536};
 
-webserver::webserver(const char* ip, int port, bool enable_et, int timeout)
-    : epoller_(std::make_unique<epoll_wrapper>(enable_et, timeout)) {
-  memset(&address, 0, sizeof(address));
-  address.sin_family = AF_INET;
-  inet_pton(AF_INET, ip, &address.sin_addr);
-  address.sin_port = htons(port);
+webserver::webserver(const char* ip, int port, bool enable_et, int timeout,
+                     int thread_number)
+    : epoller_(std::make_unique<epoll_wrapper>(enable_et, timeout)),
+      thread_pool_(std::make_unique<ThreadPool>(thread_number)) {
+  memset(&address_, 0, sizeof(address_));
+  address_.sin_family = AF_INET;
+  inet_pton(AF_INET, ip, &address_.sin_addr);
+  address_.sin_port = htons(port);
   epoller_->create(5);
+  thread_pool_->init();
 }
 
-webserver::~webserver() { close(sock); }
+webserver::~webserver() { close(sock_); }
 
-void webserver::print() { std::cout << std::format("{}", sock) << std::endl; }
+void webserver::print() { std::cout << std::format("{}", sock_) << std::endl; }
 
 void webserver::connect() {
-  sock = socket(PF_INET, SOCK_STREAM, 0);
-  if (bind(sock, (struct sockaddr*)&address, sizeof(address)) == -1) {
+  sock_ = socket(PF_INET, SOCK_STREAM, 0);
+  if (bind(sock_, (struct sockaddr*)&address_, sizeof(address_)) == -1) {
     std::cerr << "error binding" << std::endl;
     return;
   }
-  if (listen(sock, 5) == -1) {
+  if (listen(sock_, 5) == -1) {
     std::cerr << "error listening" << std::endl;
     return;
   }
-  epoller_->add(sock, true);  // 添加监听端口
+  epoller_->add(sock_, true);  // 添加监听端口
   is_connected_ = true;
 }
 
 void webserver::accept_connection() {
   struct sockaddr_in client;
   socklen_t client_addrlength = sizeof(client);
-  int connfd = accept(sock, (struct sockaddr*)&client, &client_addrlength);
+  int connfd = accept(sock_, (struct sockaddr*)&client, &client_addrlength);
   if (connfd < 0) {
     std::cerr << std::format("errno is {}", errno) << std::endl;
   } else {
@@ -90,7 +94,8 @@ void webserver::handle_read(int connfd) {
   conn.receive_request(buffer_);
   std::cout << "buffer: " << buffer_ << std::endl;
   delete[] buffer_;
-  handle_request(connfd);
+  thread_pool_->submit(std::bind(&webserver::handle_request, this, std::placeholders::_1), connfd);
+  // handle_request(connfd);
 }
 
 void webserver::handle_write(int connfd) {
@@ -130,7 +135,7 @@ void webserver::run() {
   std::cout << "run" << std::endl;
   while (true) {
     epoller_->run(
-        sock, std::bind(&webserver::accept_connection, this),
+        sock_, std::bind(&webserver::accept_connection, this),
         std::bind(&webserver::handle_read, this, std::placeholders::_1),
         std::bind(&webserver::handle_write, this, std::placeholders::_1),
         std::bind(&webserver::handle_close, this, std::placeholders::_1));
