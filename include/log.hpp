@@ -4,11 +4,13 @@
 #include <pthread.h>
 
 #include <chrono>
+#include <condition_variable>
 #include <format>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <ostream>
 #include <queue>
 #include <sstream>
@@ -39,19 +41,27 @@ class Logger {
   std::queue<std::pair<Level, std::string>> q_;
   std::ofstream fs_;
   std::thread log_thread_;
+  std::mutex mutex_;
 
   void output() {
     std::cout << fs_.is_open() << std::endl;
     // 这里应该需要一个单独的线程来循环输出日志内容
-    auto size{q_.size()};
-    for (auto i{0}; i < size; i++) {
-      auto [level, content]{q_.front()};
-      q_.pop();
-      // if (level == Level::ERROR) {
-      std::cout << content << '\n';
-      fs_ << content << '\n';
-      // }
+
+    long size{0};
+
+    {
+      std::lock_guard<std::mutex> lc(mutex_);
+      size = q_.size();
+      for (auto i{0}; i < size; i++) {
+        auto [level, content]{q_.front()};
+        q_.pop();
+        // if (level == Level::ERROR) {
+        std::cout << content << '\n';
+        fs_ << content << '\n';
+        // }
+      }
     }
+
     if (size > 0) {
       std::cout << std::endl;
       fs_.flush();
@@ -73,7 +83,11 @@ class Logger {
     auto time{std::chrono::system_clock::to_time_t(now)};
     os << std::put_time(std::localtime(&time), "%F %T")
        << std::format(".{}: {}", micros, content);
-    q_.emplace(std::make_pair<Level, std::string>(std::move(level), os.str()));
+    {
+      std::lock_guard<std::mutex> lc(mutex_);
+      q_.emplace(
+          std::make_pair<Level, std::string>(std::move(level), os.str()));
+    }
   }
 
  public:
