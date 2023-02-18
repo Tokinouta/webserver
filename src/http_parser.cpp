@@ -1,4 +1,5 @@
 #include "http_parser.hpp"
+#include "log.hpp"
 
 static const std::regex request_regex(
     "(GET|POST|HEAD|OPTIONS|PUT|PATCH|DELETE|TRACE|CONNECT) (.*) "
@@ -15,6 +16,7 @@ std::optional<HttpRequest> HttpParser::parse(const string& s) {
   string path;
   std::unordered_map<string, string> headers;
   string body;
+  auto& log{Logger::get()};
 
   // note: the following loop terminates when std::ios_base::operator bool()
   // on the stream returned from getline() returns false
@@ -45,6 +47,7 @@ std::optional<HttpRequest> HttpParser::parse(const string& s) {
       }
 
       case HttpParseStatus::END: {
+        log.info("Parse Succeeded.");
         auto request{HttpRequest(method, std::move(path), std::move(headers),
                                  std::move(body))};
         return std::make_optional<HttpRequest>(request);
@@ -52,6 +55,7 @@ std::optional<HttpRequest> HttpParser::parse(const string& s) {
       }
 
       case HttpParseStatus::FAILED: {
+        log.error("Parse Failed");
         return std::nullopt;
         break;
       }

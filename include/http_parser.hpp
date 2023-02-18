@@ -10,6 +10,7 @@
 
 #include "http_request.hpp"
 #include "http_states.hpp"
+#include "log.hpp"
 
 using std::string;
 

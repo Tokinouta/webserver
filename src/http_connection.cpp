@@ -1,6 +1,7 @@
 #include "http_connection.hpp"
 
 #include "http_states.hpp"
+#include "log.hpp"
 
 namespace fs = std::filesystem;
 
@@ -8,12 +9,10 @@ HttpConnection::HttpConnection() : parser_() {}
 
 HttpConnection::~HttpConnection() {}
 
-void HttpConnection::parse() {
-  request_ = parser_.parse(request_buffer_);
-}
+void HttpConnection::parse() { request_ = parser_.parse(request_buffer_); }
 
 void HttpConnection::prepare_response() {
-  // std::stringstream content_buf;
+  auto& log{Logger::get()};
   std::ifstream file_buf;
   string file_content;
 
@@ -22,10 +21,10 @@ void HttpConnection::prepare_response() {
   std::cout << file_name << std::endl;
   auto valid{true};  // 记录目标文件是否是有效文件
   if (!fs::exists(file_name)) {
-    std::cerr << "File not exists." << std::endl;
+    log.error("File not exists.");
     valid = false;
   } else if (fs::is_directory(file_name)) {
-    std::cerr << "File is a directory." << std::endl;
+    log.error("File is a directory.");
     valid = false;
   } else {
     auto perms{fs::status(file_name).permissions()};
@@ -33,7 +32,9 @@ void HttpConnection::prepare_response() {
       file_buf.open(file_name);
       file_buf >> file_content;
       valid = !file_buf.fail() && !file_buf.bad();
+      log.info("File read.");
     } else {
+      log.error("Can't read file.");
       valid = false;
     }
   }
@@ -50,4 +51,5 @@ void HttpConnection::prepare_response() {
     response_.set_status(HttpStatusCode::NOT_FOUND);
   }
   response_buffer_ = response_.generate_response();
+  log.info("Response generated");
 }

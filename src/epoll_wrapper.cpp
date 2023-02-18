@@ -11,6 +11,8 @@
 #include <format>
 #include <iostream>
 
+#include "log.hpp"
+
 inline int setnonblocking(int fd) {
   int old_option{fcntl(fd, F_GETFL)};
   int new_option{old_option | O_NONBLOCK};
@@ -84,6 +86,7 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
   std::cout << "epoller started to run" << std::endl;
   auto number{wait()};
   std::cout << std::format("got {} fds with new edge", number) << std::endl;
+  auto& log{Logger::get()};
   // auto BUFFER_SIZE{100};
   // char buf[BUFFER_SIZE];
   for (int i = 0; i < number; i++) {
@@ -94,7 +97,7 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
       accept();
     } else if (events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
       // 对端关闭了连接
-      std::cout << std::format("close fd {}", sockfd) << std::endl;
+      log.info(std::format("close fd {}", sockfd));
       del(sockfd);
       handle_close(sockfd);
     } else if (events & EPOLLIN) {
@@ -104,14 +107,14 @@ void epoll_wrapper::run(int listenfd, std::function<void()> accept,
       // 读取http请求
 
       // 需要关联文件描述符和链接对象
-      std::cout << std::format("read fd {}", sockfd) << std::endl;
+      log.info(std::format("read fd {}", sockfd));
       handle_read(sockfd);
     } else if (events & EPOLLOUT) {
       // 写事件
-      std::cout << std::format("write fd {}", sockfd) << std::endl;
+      log.info(std::format("write fd {}", sockfd));
       handle_write(sockfd);
     } else {
-      printf("something else happened \n");
+      log.error("something else happened \n");
     }
   }
 }

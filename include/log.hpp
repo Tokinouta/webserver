@@ -33,7 +33,9 @@ class Logger {
             std::this_thread::sleep_for(200ms);
             this->output();
           }
-        })) {}
+        })) {
+          std::cout << "hi, I am logger" << std::endl;
+        }
   Logger(const Logger &) = delete;
   Logger(const Logger &&) = delete;
   Logger &operator=(const Logger &) = delete;
@@ -42,6 +44,7 @@ class Logger {
   std::ofstream fs_;
   std::thread log_thread_;
   std::mutex mutex_;
+  Level log_level_{Level::INFO};
 
   void output() {
     std::cout << fs_.is_open() << std::endl;
@@ -55,10 +58,10 @@ class Logger {
       for (auto i{0}; i < size; i++) {
         auto [level, content]{q_.front()};
         q_.pop();
-        // if (level == Level::ERROR) {
+        if (level <= log_level_) {
         std::cout << content << '\n';
         fs_ << content << '\n';
-        // }
+        }
       }
     }
 

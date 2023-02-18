@@ -89,12 +89,16 @@ void webserver::handle_read(int connfd) {
     // return ((m_clt_read_idx - m_clt_write_idx) > 0) ? OK : NOTHING;
   }
   if (read_index == 0) {
+    auto& log{Logger::get()};
+    log.error("Failed to receive request");
     return;
   }
   conn.receive_request(buffer_);
   std::cout << "buffer: " << buffer_ << std::endl;
   delete[] buffer_;
-  thread_pool_->submit(std::bind(&webserver::handle_request, this, std::placeholders::_1), connfd);
+  thread_pool_->submit(
+      std::bind(&webserver::handle_request, this, std::placeholders::_1),
+      connfd);
   // handle_request(connfd);
 }
 

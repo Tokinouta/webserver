@@ -13,6 +13,8 @@ add_executable(test_server test_server.cpp ../src/http_connection.cpp ../src/htt
 add_executable(test_server_concurrency test_server_concurrency.cpp ../src/http_connection.cpp ../src/http_parser.cpp ../src/webserver.cpp ../src/epoll_wrapper.cpp)
 add_executable(test_log test_log.cpp)
 target_link_libraries(test_thread_pool pthread)
+target_link_libraries(test_parser pthread)
+target_link_libraries(test_pipeline pthread)
 target_link_libraries(test_server Boost::boost pthread)
 target_link_libraries(test_server_concurrency Boost::boost Boost::coroutine pthread)
 target_link_libraries(test_log pthread)
