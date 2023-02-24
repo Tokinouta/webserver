@@ -47,7 +47,7 @@ class Logger {
   Level log_level_{Level::INFO};
 
   void output() {
-    std::cout << fs_.is_open() << std::endl;
+    // std::cout << fs_.is_open() << std::endl;
     // 这里应该需要一个单独的线程来循环输出日志内容
 
     long size{0};
