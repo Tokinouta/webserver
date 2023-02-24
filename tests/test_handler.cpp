@@ -1,15 +1,19 @@
 #include <iostream>
+#include <string>
+#include <cassert>
+
 #include "handler.hpp"
 #include "http_response.hpp"
 
 int main() {
   auto handler{Handler()};
-  auto someFunction = [](int a, float b, const std::string& c,
-                         const std::string& url) -> HttpResponse {
-    std::cout << "someFunction called with a = " << a << ", b = " << b
-              << ", c = " << c << std::endl;
+  auto someFunction = [](const std::string& url) -> HttpResponse {
+    std::cout << url << std::endl;
     return HttpResponse();
   };
-  handler.register_route<HttpResponse>("string path", someFunction);
+  auto url{string("string path")};
+  handler.register_route(url, someFunction);
+  handler.call(url);
+  assert(1 == 0);
   return 0;
 }

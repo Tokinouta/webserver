@@ -34,7 +34,7 @@ class Handler {
   // }
 
   // template <typename F, typename... Args>
-  void register_route(string path, std::function<HttpResponse&(const string&)>&& func) {
+  void register_route(string path, std::function<HttpResponse(const string&)>&& func) {
     // auto f{std::forward<F>(func)};
     // using func_type = std::function<F>;
     // using arg_type = typename func_type::argument_type;
@@ -48,6 +48,10 @@ class Handler {
       return func(url);
     };
     router.insert({path, handler});
+  }
+
+  void call(const string& url) {
+    router[url](url);
   }
 };
 
