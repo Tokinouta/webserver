@@ -21,6 +21,7 @@
 #include <unordered_map>
 
 #include "epoll_wrapper.hpp"
+#include "handler.hpp"
 #include "http_connection.hpp"
 #include "thread_pool.hpp"
 
@@ -32,6 +33,7 @@ class webserver {
   std::unique_ptr<epoll_wrapper> epoller_;
   std::unordered_map<int, HttpConnection> connection_;
   std::unique_ptr<ThreadPool> thread_pool_;
+  Handler handler_;
 
   bool is_connected_{false};
 
@@ -49,6 +51,8 @@ class webserver {
   void run();
 
   const bool is_connected() { return is_connected_; }
+
+  void register_route(string&& path, std::function<HttpResponse(const string&)>&& func);
 };
 
 #endif

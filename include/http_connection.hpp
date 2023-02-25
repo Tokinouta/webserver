@@ -38,5 +38,8 @@ class HttpConnection {
     response_buffer_ = response_.generate_response();
   }
   std::string generate_response() { return response_buffer_; }
+
+  const std::string& path() const { return request_->path(); }
+  HttpResponse& response() { return response_; }
 };
 #endif

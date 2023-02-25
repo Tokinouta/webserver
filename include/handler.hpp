@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "http_connection.hpp"
 #include "http_request.hpp"
 #include "http_response.hpp"
 class Handler {
@@ -34,7 +35,7 @@ class Handler {
   // }
 
   // template <typename F, typename... Args>
-  void register_route(string path, std::function<HttpResponse(const string&)>&& func) {
+  void register_route(string&& path, std::function<HttpResponse(const string&)>&& func) {
     // auto f{std::forward<F>(func)};
     // using func_type = std::function<F>;
     // using arg_type = typename func_type::argument_type;
@@ -50,8 +51,9 @@ class Handler {
     router.insert({path, handler});
   }
 
-  void call(const string& url) {
-    router[url](url);
+  void call(HttpConnection& conn) {
+    auto path{conn.path()};
+    conn.response() = router[path](path);
   }
 };
 

@@ -5,6 +5,7 @@
 #include <map>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include "http_states.hpp"
@@ -34,6 +35,10 @@ class HttpRequest {
     buffer << "\r\n";
     buffer << body_;
     return buffer.str();
+  }
+
+  const std::string& path() const {
+    return path_;
   }
 };
 

@@ -10,6 +10,7 @@
 #include <string>
 
 #include "webserver.hpp"
+#include "request_handlers.hpp"
 
 int main(int argc, char* argv[]) {
   std::cout << "hello world!" << std::endl;
@@ -24,6 +25,7 @@ int main(int argc, char* argv[]) {
   auto timeout{-1};
   auto server{webserver(ip, port, enable_et, timeout, 10)};
   server.connect();
+  server.register_route("/rarara", h);
   if (server.is_connected()) {
     server.run();
   }

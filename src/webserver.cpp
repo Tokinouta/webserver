@@ -129,6 +129,7 @@ void webserver::handle_request(int connfd) {
   if (!conn.is_request_available()) {
     conn.prepare_error_response(HttpStatusCode::BAD_REQUEST);
   } else {
+    handler_.call(conn);
     conn.prepare_response();
   }
   // 通过设置EPOLLOUT手动触发写事件
@@ -144,4 +145,8 @@ void webserver::run() {
         std::bind(&webserver::handle_write, this, std::placeholders::_1),
         std::bind(&webserver::handle_close, this, std::placeholders::_1));
   }
+}
+
+void webserver::register_route(string&& path, std::function<HttpResponse(const string&)>&& func) {
+  handler_.register_route(std::move(path), std::move(func));
 }
