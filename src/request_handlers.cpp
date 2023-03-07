@@ -1,12 +1,15 @@
 #include "request_handlers.hpp"
 
+#include <format>
+#include <sstream>
+
 #include "http_response.hpp"
 namespace fs = std::filesystem;
 
 HttpResponse h(const std::string& url) {
   auto& log{Logger::get()};
   std::ifstream file_buf;
-  string file_content;
+  std::stringstream file_content;
   HttpResponse response_;
 
   string file_name{fs::current_path().append("test.txt")};
@@ -23,17 +26,23 @@ HttpResponse h(const std::string& url) {
     auto perms{fs::status(file_name).permissions()};
     if ((perms & fs::perms::owner_read) != fs::perms::none) {
       file_buf.open(file_name);
-      file_buf >> file_content; // TODO 需要修改一下这里以读取整个文件
+      string a;
+      while (!file_buf.eof()) {
+        std::getline(file_buf, a);
+        std::cout << a << std::endl;
+        file_content << a << '\n';
+      }
+      // file_buf. >> file_content; // TODO 需要修改一下这里以读取整个文件
       valid = !file_buf.fail() && !file_buf.bad();
-      log.info("File read.");
+      log.info(std::format("File read. Content: {}", file_content.str()));
     } else {
       log.error("Can't read file.");
       valid = false;
     }
   }
   file_buf.close();
-  auto content_length{file_content.size()};
-  response_.add_body(std::move(file_content));
+  auto content_length{file_content.str().size()};
+  response_.add_body(file_content.str());
 
   // 如果目标文件有效，则发送正常的HTTP应答
   if (valid) {

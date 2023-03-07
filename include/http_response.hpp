@@ -19,7 +19,7 @@ class HttpResponse {
  public:
   HttpResponse() {}
   ~HttpResponse() {}
-  string generate_response(const string& http_version = "HTTP/1.1") {
+  string generate_response(const string& http_version = "HTTP/1.1") const {
     std::ostringstream buffer;
     buffer << std::format("{} {}\r\n", http_version,
                           status_string(status_code_));
@@ -28,6 +28,17 @@ class HttpResponse {
     }
     buffer << "\r\n";
     buffer << body_;
+    return buffer.str();
+  }
+
+  string response_header(const string& http_version = "HTTP/1.1") const {
+    std::ostringstream buffer;
+    buffer << std::format("{} {}\r\n", http_version,
+                          status_string(status_code_));
+    for (auto [h, c] : headers_) {
+      buffer << std::format("{}: {}\r\n", h, c);
+    }
+    buffer << "\r\n";
     return buffer.str();
   }
 
